@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мой гардероб</title>
+<style>
+:root{
+  --bg:#faf8f5; --card:#fff; --ink:#2b2622; --sub:#8a7f74; --line:#e8e1d8;
+  --accent:#c9765a; --accent2:#7a8c6a; --chip:#f2ede6;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1c1a18; --card:#252220; --ink:#efe9e2; --sub:#a89b8c; --line:#3a352f;
+    --accent:#e08a68; --accent2:#93a87f; --chip:#302c27;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1c1a18; --card:#252220; --ink:#efe9e2; --sub:#a89b8c; --line:#3a352f;
+  --accent:#e08a68; --accent2:#93a87f; --chip:#302c27;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,sans-serif;min-height:100%}
+header{position:sticky;top:0;top:env(safe-area-inset-top,0px);background:var(--bg);padding:16px 16px 0;z-index:5}
+h1{font-size:1.3rem;margin:4px 0 12px}
+nav{display:flex;gap:8px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{background:none;border:none;padding:10px 12px;font-size:0.88rem;color:var(--sub);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent}
+nav button.active{color:var(--accent);border-color:var(--accent);font-weight:600}
+main{padding:16px;max-width:720px;margin:0 auto}
+.view{display:none}
+.view.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font-size:0.95rem;margin-top:4px}
+label{font-size:0.8rem;color:var(--sub);display:block;margin-top:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>div{flex:1;min-width:110px}
+button.primary{margin-top:12px;width:100%;padding:11px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:0.95rem;font-weight:600;cursor:pointer}
+button.secondary{margin-top:8px;width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-size:0.9rem;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;position:relative}
+.item img{width:100%;height:100px;object-fit:cover;display:block}
+.swatch{width:100%;height:100px;display:flex;align-items:center;justify-content:center;font-size:2rem}
+.item .info{padding:6px 8px}
+.item .name{font-size:0.82rem;font-weight:600}
+.item .cat{font-size:0.72rem;color:var(--sub)}
+.item.selected{outline:2px solid var(--accent)}
+.item.match{outline:2px solid var(--accent2)}
+.item .del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:.8rem;cursor:pointer}
+.chip{display:inline-block;background:var(--chip);color:var(--sub);border-radius:20px;padding:3px 10px;font-size:0.75rem;margin:2px 4px 2px 0}
+.empty{color:var(--sub);text-align:center;padding:30px 10px;font-size:0.9rem}
+.outfit-card{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:6px 0}
+.outfit-card .thumb{width:48px;height:48px;border-radius:8px;flex-shrink:0;object-fit:cover;border:1px solid var(--line)}
+.outfit-card .thumb.sw{display:flex;align-items:center;justify-content:center;font-size:1.3rem}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.cal-head{font-size:0.7rem;color:var(--sub);text-align:center}
+.day{aspect-ratio:1;border:1px solid var(--line);border-radius:8px;padding:3px;font-size:0.7rem;position:relative;cursor:pointer;background:var(--card)}
+.day.today{border-color:var(--accent)}
+.day .n{font-weight:600}
+.day .dot{position:absolute;bottom:3px;left:3px;right:3px;height:5px;border-radius:3px;background:var(--accent2)}
+.day.empty{visibility:hidden;cursor:default}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;align-items:center;justify-content:center;padding:16px}
+.modal-bg.active{display:flex}
+.modal{background:var(--card);border-radius:14px;padding:16px;max-width:380px;width:100%;max-height:80vh;overflow-y:auto}
+.modal h3{margin-top:0}
+.close{float:right;background:none;border:none;font-size:1.2rem;color:var(--sub);cursor:pointer}
+.stat-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.stat-row:last-child{border-bottom:none}
+.stat-row .thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.stat-row .thumb.sw{display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:var(--chip)}
+.stat-row .meta{flex:1}
+.stat-row .meta .name{font-size:0.88rem;font-weight:600}
+.stat-row .meta .sub{font-size:0.75rem;color:var(--sub)}
+.badge{font-size:0.72rem;background:var(--chip);color:var(--sub);border-radius:8px;padding:3px 7px}
+.role-badge{font-size:0.68rem;color:var(--accent);font-weight:600}
+.warn{background:#e08a6822;border:1px solid var(--accent);color:var(--ink);border-radius:10px;padding:9px 11px;font-size:0.83rem;margin-top:8px}
+.gh{grid-column:1/-1;font-weight:600;font-size:.85rem;color:var(--accent);margin-top:8px;border-bottom:1px solid var(--line);padding-bottom:3px}
+.vbadge{display:inline-block;font-size:.66rem;font-weight:600;color:#fff;border-radius:6px;padding:2px 6px;margin-top:3px}
+.sub-chip{font-size:.68rem;color:var(--sub);margin-top:2px}
+.vsum{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.vsum .chip{cursor:pointer;margin:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>👗 Мой гардероб</h1>
+  <nav>
+    <button data-v="wardrobe" class="active">Гардероб</button>
+    <button data-v="outfits">Образы</button>
+    <button data-v="calendar">Календарь</button>
+    <button data-v="stats">Статистика</button>
+    <button data-v="data">Данные</button>
+  </nav>
+</header>
+<main>
+
+  <section id="wardrobe" class="view active">
+    <div class="card">
+      <strong>Добавить вещь</strong>
+      <div class="row">
+        <div><label>Номер (ID)</label><input id="itCustomId" placeholder="T-01"></div>
+        <div><label>Категория</label><input id="itCat" list="catList" placeholder="Джемперы" oninput="suggestId()"></div>
+      </div>
+      <datalist id="catList">
+        <option>Джемперы</option><option>Свитера</option><option>Рубашки</option><option>Блузки</option>
+        <option>Футболки</option><option>Топы</option><option>Брюки</option><option>Джинсы</option>
+        <option>Юбки</option><option>Шорты</option><option>Платья</option><option>Обувь</option>
+        <option>Верхняя одежда</option><option>Аксессуары</option>
+      </datalist>
+      <label>Название (описание вещи)</label>
+      <input id="itName" placeholder="джемпер в рубчик, V-вырез, асимметричный низ">
+      <div class="row">
+        <div><label>Цвет</label><select id="itColor"></select></div>
+        <div><label>Материал</label><input id="itMaterial" placeholder="трикотаж, хлопок/вискоза"></div>
+      </div>
+      <div class="row">
+        <div><label>Состояние</label>
+          <select id="itCondition">
+            <option>Новое / каталог</option><option>Отличное</option><option>Хорошее</option>
+            <option>Есть дефекты</option><option>Требует ремонта</option>
+          </select>
+        </div>
+        <div><label>Сезон</label>
+          <select id="itSeason">
+            <option>Всесезонное</option><option>Весна-лето</option><option>Лето</option>
+            <option>Осень-зима</option><option>Зима</option><option>Деми</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div><label>Универсальность</label>
+          <select id="itVersatility"><option>Высокая</option><option>Средняя</option><option>Низкая</option></select>
+        </div>
+        <div><label>Погода</label>
+          <select id="itWeather">
+            <option>Любая</option><option>Жарко ☀️</option><option>Тепло 🌤️</option>
+            <option>Прохладно 🌥️</option><option>Холодно ❄️</option><option>Дождь 🌧️</option>
+          </select>
+        </div>
+      </div>
+      <label>Роль</label><select id="itRole"></select>
+      <div class="row">
+        <div><label>Вердикт</label><select id="itVerdict"></select></div>
+        <div><label>Подгруппа</label><input id="itSub" list="subList" placeholder="Капсула водолазок"></div>
+      </div>
+      <datalist id="subList"></datalist>
+      <label>Фото (необязательно)</label>
+      <input id="itPhoto" type="file" accept="image/*">
+      <button class="primary" onclick="addItem()">Добавить</button>
+    </div>
+    <div class="card">
+      <strong>Фильтры</strong>
+      <div class="row">
+        <div><label>Категория</label><select id="fCat" onchange="renderWardrobe()"></select></div>
+        <div><label>Цвет</label><select id="fColor" onchange="renderWardrobe()"></select></div>
+        <div><label>Погода</label><select id="fWeather" onchange="renderWardrobe()"></select></div>
+        <div><label>Роль</label><select id="fRole" onchange="renderWardrobe()"></select></div>
+      </div>
+      <div class="row">
+        <div><label>Вердикт</label><select id="fVerdict" onchange="renderWardrobe()"></select></div>
+        <div><label>Подгруппа</label><select id="fSub" onchange="renderWardrobe()"></select></div>
+      </div>
+      <div class="row">
+        <div><label>Сортировать</label><select id="fSort" onchange="renderWardrobe()">
+          <option value="id">По номеру (ID)</option><option value="cat">По категории</option>
+          <option value="verdict">По вердикту</option><option value="sub">По подгруппе</option>
+          <option value="conf">По уверенности</option><option value="worn">Реже носимые сверху</option>
+          <option value="quar">По дате конца карантина</option></select></div>
+        <div><label>Группировать</label><select id="fGroup" onchange="renderWardrobe()">
+          <option value="">Без групп</option><option value="subgroup">По подгруппе</option>
+          <option value="verdict">По вердикту</option><option value="cat">По категории</option></select></div>
+      </div>
+    </div>
+    <div id="verdictSummary" class="vsum"></div>
+    <div style="display:none">
+    </div>
+    </div>
+    <div id="wardrobeGrid" class="grid"></div>
+  </section>
+
+  <section id="outfits" class="view">
+    <div class="card">
+      <strong>Быстрый подбор по погоде</strong>
+      <select id="quickWeather">
+        <option value="">Выберите погоду...</option>
+        <option>Жарко ☀️</option><option>Тепло 🌤️</option>
+        <option>Прохладно 🌥️</option><option>Холодно ❄️</option><option>Дождь 🌧️</option>
+      </select>
+      <button class="secondary" onclick="quickPick()">Подобрать вещи</button>
+      <div id="quickResult"></div>
+    </div>
+    <div class="card">
+      <strong>Собрать образ вручную</strong>
+      <p style="color:var(--sub);font-size:0.85rem;margin:6px 0">Выберите вещи ниже, затем сохраните</p>
+      <div id="pickerGrid" class="grid"></div>
+      <label>Название образа</label>
+      <input id="outfitName" placeholder="Офисный образ">
+      <button class="primary" onclick="saveOutfit()">Сохранить образ</button>
+    </div>
+    <div id="outfitsList"></div>
+  </section>
+
+  <section id="calendar" class="view">
+    <div class="card">
+      <div class="row" style="align-items:center">
+        <button onclick="shiftMonth(-1)" style="flex:0 0 auto;padding:6px 10px">◀</button>
+        <div style="text-align:center;font-weight:600" id="monthLabel"></div>
+        <button onclick="shiftMonth(1)" style="flex:0 0 auto;padding:6px 10px">▶</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </section>
+
+  <section id="stats" class="view">
+    <div class="card">
+      <strong>Реже всего носите</strong>
+      <p style="color:var(--sub);font-size:0.85rem;margin:6px 0">Отмечайте образы как «поношено» на вкладке Образы — статистика обновится</p>
+      <div id="statsList"></div>
+    </div>
+  </section>
+
+  <section id="data" class="view">
+    <div class="card">
+      <strong>1. Выгрузить в wardrobe.json</strong>
+      <p style="color:var(--sub);font-size:0.85rem;margin:6px 0">Формат совместим со схемой из вашей Mac-инструкции (id, category, color, material, season, personas и т.д.)</p>
+      <button class="secondary" onclick="exportJSON()">⬇️ Скачать wardrobe.json</button>
+      <button class="secondary" onclick="exportPhotos()">🖼️ Скачать фото по ID (для папки images/)</button>
+    </div>
+    <div class="card">
+      <strong>Загрузить фото пачкой</strong>
+      <p style="color:var(--sub);font-size:0.85rem;margin:6px 0">Выберите сразу много фото — приложение само найдёт вещь по имени файла (например, <code>T-01.jpg</code> подставится в карточку с ID <code>T-01</code>). Можно выбирать несколько раз, если файлов много.</p>
+      <input id="bulkPhotos" type="file" accept="image/*" multiple>
+      <button class="primary" onclick="bulkImportPhotos()">📸 Разложить по карточкам</button>
+      <div id="bulkPhotoStatus" style="margin-top:8px;font-size:0.85rem;color:var(--sub)"></div>
+    </div>
+    <div class="card">
+      <strong>Применить анализ расхламления</strong>
+      <p style="color:var(--sub);font-size:0.85rem;margin:6px 0">Проставит вердикт, подгруппу, уверенность и «что сделать» по ID (T-05, SK-07, E1-04…). Для карантина поставит дату +30 дней. Вещи с другими ID пропускаются — список покажу ниже. Ручные правки по этим полям будут перезаписаны.</p>
+      <button class="primary" onclick="applyAnalysis()">🧹 Применить анализ</button>
+      <div id="analysisStatus" style="margin-top:8px;font-size:0.85rem;color:var(--sub)"></div>
+    </div>
+    <div class="card">
+      <strong>2. Загрузить обратно после обработки в ChatGPT/скрипта</strong>
+      <p style="color:var(--sub);font-size:0.85rem;margin:6px 0">Примите файл <code>wardrobe_enriched.json</code> (обновит роли/заметки по ID) или <code>looks.json</code> (создаст готовые образы). Импорт ищет вещи по полю id/customId — не меняйте его в скриптах.</p>
+      <input id="importFile" type="file" accept="application/json">
+      <button class="primary" onclick="importFile()">⬆️ Импортировать</button>
+      <div id="importStatus" style="margin-top:8px;font-size:0.85rem;color:var(--sub)"></div>
+    </div>
+  </section>
+
+</main>
+
+<div class="modal-bg" id="dayModalBg">
+  <div class="modal">
+    <button class="close" onclick="closeModal()">✕</button>
+    <h3 id="modalDate"></h3>
+    <label>Выбрать образ на этот день</label>
+    <select id="modalOutfitSelect"></select>
+    <button class="primary" onclick="assignOutfit()">Назначить</button>
+    <button class="primary" style="background:var(--sub);margin-top:8px" onclick="clearDay()">Очистить день</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="itemModalBg">
+  <div class="modal">
+    <button class="close" onclick="closeItemModal()">✕</button>
+    <h3>Карточка вещи</h3>
+    <label>Номер (ID)</label><input id="emCustomId">
+    <label>Категория</label><input id="emCat" list="catList">
+    <label>Название (описание)</label><input id="emName">
+    <label>Фото</label>
+    <div id="emPhotoPreview" style="margin-top:6px"></div>
+    <input id="emPhoto" type="file" accept="image/*">
+    <button class="secondary" id="emPhotoRemoveBtn" onclick="removeEmPhoto()" style="display:none">Удалить фото</button>
+    <div class="row">
+      <div><label>Цвет</label><select id="emColor"></select></div>
+      <div><label>Материал</label><input id="emMaterial"></div>
+    </div>
+    <div class="row">
+      <div><label>Состояние</label>
+        <select id="emCondition">
+          <option>Новое / каталог</option><option>Отличное</option><option>Хорошее</option>
+          <option>Есть дефекты</option><option>Требует ремонта</option>
+        </select>
+      </div>
+      <div><label>Сезон</label>
+        <select id="emSeason">
+          <option>Всесезонное</option><option>Весна-лето</option><option>Лето</option>
+          <option>Осень-зима</option><option>Зима</option><option>Деми</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>Универсальность</label>
+        <select id="emVersatility"><option>Высокая</option><option>Средняя</option><option>Низкая</option></select>
+      </div>
+      <div><label>Погода</label>
+        <select id="emWeather">
+          <option>Любая</option><option>Жарко ☀️</option><option>Тепло 🌤️</option>
+          <option>Прохладно 🌥️</option><option>Холодно ❄️</option><option>Дождь 🌧️</option>
+        </select>
+      </div>
+    </div>
+    <label>Роль</label><select id="emRole"></select>
+    <div class="row">
+      <div><label>Вердикт</label><select id="emVerdict"></select></div>
+      <div><label>Уверенность</label><select id="emConf"></select></div>
+    </div>
+    <label>Подгруппа</label><input id="emSub" list="subList">
+    <label>Что сделать</label><input id="emAction" placeholder="Проверить состав, примерить…">
+    <label>Карантин до</label><input id="emQuar" type="date">
+    <p class="badge" id="emStats" style="margin-top:10px;display:inline-block"></p>
+    <button class="primary" onclick="saveItemEdit()">Сохранить изменения</button>
+  </div>
+</div>
+
+<script>
+const NAMED_COLORS = [
+  ['Белый','#f5f5f0'],['Чёрный','#2b2622'],['Серый','#9c9c94'],['Бежевый','#d8c9ad'],
+  ['Синий','#3b5b8c'],['Красный','#b23b3b'],['Зелёный','#5a8c5a'],['Жёлтый','#d9b93b'],
+  ['Розовый','#d98cb3'],['Коричневый','#7a5230']
+];
+const ROLES = ['Без роли','Спорт','Пилатес герл','Офис','Повседневное','Вечер','Романтик','Тёмная героиня','Тёплая гостья','Парижская профессионалка','Эксцентричная грань'];
+const VERDICTS = ['Без вердикта','Оставить','Карантин 30 дней','До примерки','Уточнить','Отдельно'];
+const CONFS = ['—','Высокая','Средняя','Низкая'];
+const VCOL = {'Оставить':'#7a8c6a','Карантин 30 дней':'#c9765a','До примерки':'#b8912a','Уточнить':'#6f7bb0','Отдельно':'#8a7f74'};
+const GROUP_SPORT = ['Спорт','Пилатес герл'];
+const GROUP_FORMAL = ['Офис','Вечер','Тёмная героиня','Парижская профессионалка'];
+const CAT_PREFIX = {
+  'Джемперы':'T','Свитера':'T','Рубашки':'T','Блузки':'T','Футболки':'T','Топы':'T',
+  'Брюки':'P','Джинсы':'P','Юбки':'P','Шорты':'P',
+  'Платья':'D','Обувь':'O','Верхняя одежда':'V','Аксессуары':'A'
+};
+function prefixFor(cat){
+  if(!cat) return 'X';
+  return CAT_PREFIX[cat] || cat.trim().charAt(0).toUpperCase() || 'X';
+}
+function nextId(cat){
+  const prefix = prefixFor(cat);
+  const nums = items.filter(i=>i.customId && i.customId.startsWith(prefix+'-'))
+    .map(i=>parseInt(i.customId.split('-')[1],10)||0);
+  const next = (nums.length?Math.max(...nums):0)+1;
+  return prefix+'-'+String(next).padStart(2,'0');
+}
+function suggestId(){
+  const cat = document.getElementById('itCat').value;
+  const idField = document.getElementById('itCustomId');
+  if(!idField.value || idField.dataset.auto==='1'){
+    idField.value = cat ? nextId(cat) : '';
+    idField.dataset.auto = '1';
+  }
+}
+function roleConflict(ids){
+  const roles = ids.map(id=>items.find(i=>i.id===id)).filter(Boolean).map(it=>it.role);
+  const hasSport = roles.some(r=>GROUP_SPORT.includes(r));
+  const hasFormal = roles.some(r=>GROUP_FORMAL.includes(r));
+  return hasSport && hasFormal;
+}
+let items = [], outfits = [], calendar = {}, selectedIds = new Set(), photoData = null;
+let curMonth = new Date(); curMonth.setDate(1);
+let modalKey = null;
+
+function fillColorSelects(){
+  const opts = NAMED_COLORS.map(c=>`<option value="${c[0]}" data-hex="${c[1]}">${c[0]}</option>`).join('');
+  document.getElementById('itColor').innerHTML = opts;
+  document.getElementById('fCat').innerHTML = '<option value="">Все категории</option>' +
+    Object.keys(CAT_PREFIX).map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('fColor').innerHTML = '<option value="">Все цвета</option>' + opts;
+  document.getElementById('fWeather').innerHTML = '<option value="">Вся погода</option>' +
+    ['Любая','Жарко ☀️','Тепло 🌤️','Прохладно 🌥️','Холодно ❄️','Дождь 🌧️'].map(w=>`<option>${w}</option>`).join('');
+  document.getElementById('itRole').innerHTML = ROLES.map(r=>`<option>${r}</option>`).join('');
+  document.getElementById('fRole').innerHTML = '<option value="">Все роли</option>' + ROLES.map(r=>`<option>${r}</option>`).join('');
+  document.getElementById('emColor').innerHTML = opts;
+  document.getElementById('emRole').innerHTML = ROLES.map(r=>`<option>${r}</option>`).join('');
+  const vo = VERDICTS.map(v=>`<option>${v}</option>`).join('');
+  document.getElementById('itVerdict').innerHTML = vo;
+  document.getElementById('emVerdict').innerHTML = vo;
+  document.getElementById('fVerdict').innerHTML = '<option value="">Все вердикты</option>' + vo;
+  document.getElementById('emConf').innerHTML = CONFS.map(v=>`<option>${v}</option>`).join('');
+}
+function hexFor(name){ const f = NAMED_COLORS.find(c=>c[0]===name); return f?f[1]:'#ccc'; }
+
+function load(){
+  try{ items = JSON.parse(localStorage.getItem('wd_items')||'[]'); }catch(e){ items=[]; }
+  try{ outfits = JSON.parse(localStorage.getItem('wd_outfits')||'[]'); }catch(e){ outfits=[]; }
+  try{ calendar = JSON.parse(localStorage.getItem('wd_calendar')||'{}'); }catch(e){ calendar={}; }
+}
+function save(){
+  try{
+    localStorage.setItem('wd_items', JSON.stringify(items));
+    localStorage.setItem('wd_outfits', JSON.stringify(outfits));
+    localStorage.setItem('wd_calendar', JSON.stringify(calendar));
+  }catch(e){ console.error('storage error', e); }
+}
+
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById(b.dataset.v).classList.add('active');
+    if(b.dataset.v==='outfits'){ renderPicker(); renderOutfits(); }
+    if(b.dataset.v==='calendar'){ renderCalendar(); }
+    if(b.dataset.v==='stats'){ renderStats(); }
+  };
+});
+
+document.getElementById('itPhoto').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(!f){ photoData=null; return; }
+  const r = new FileReader();
+  r.onload = ()=>{ photoData = r.result; };
+  r.readAsDataURL(f);
+});
+document.getElementById('itCustomId').addEventListener('input', e=>{ e.target.dataset.auto='0'; });
+
+function addItem(){
+  const name = document.getElementById('itName').value.trim();
+  if(!name){ alert('Введите название вещи'); return; }
+  const cat = document.getElementById('itCat').value.trim() || 'Без категории';
+  const customId = document.getElementById('itCustomId').value.trim() || nextId(cat);
+  const colorName = document.getElementById('itColor').value;
+  const material = document.getElementById('itMaterial').value.trim();
+  const condition = document.getElementById('itCondition').value;
+  const season = document.getElementById('itSeason').value;
+  const versatility = document.getElementById('itVersatility').value;
+  const weather = document.getElementById('itWeather').value;
+  const role = document.getElementById('itRole').value;
+  items.push({id:'i'+Date.now(), customId, name, cat, colorName, color:hexFor(colorName),
+    material, condition, season, versatility, weather, role, photo: photoData, wearCount:0, lastWorn:null,
+    verdict:document.getElementById('itVerdict').value, subgroup:document.getElementById('itSub').value.trim()});
+  document.getElementById('itSub').value='';
+  photoData = null;
+  document.getElementById('itName').value='';
+  document.getElementById('itMaterial').value='';
+  document.getElementById('itCustomId').value='';
+  document.getElementById('itCustomId').dataset.auto='';
+  document.getElementById('itPhoto').value='';
+  save(); renderWardrobe();
+}
+function delItem(id, ev){
+  ev.stopPropagation();
+  items = items.filter(i=>i.id!==id);
+  selectedIds.delete(id);
+  save(); renderWardrobe();
+}
+function itemThumb(it){
+  return it.photo
+    ? `<img src="${it.photo}" alt="">`
+    : `<div class="swatch" style="background:${it.color}33">👕</div>`;
+}
+function filteredItems(){
+  const v = id=>document.getElementById(id).value;
+  const fc=v('fCat'), fco=v('fColor'), fw=v('fWeather'), fr=v('fRole'), fv=v('fVerdict'), fs=v('fSub');
+  return items.filter(it =>
+    (!fc || it.cat===fc) && (!fco || it.colorName===fco) && (!fw || it.weather===fw) && (!fr || it.role===fr) &&
+    (!fv || (it.verdict||'Без вердикта')===fv) && (!fs || (it.subgroup||'')===(fs==='__none'?'':fs))
+  );
+}
+function refreshCatFilter(){
+  const sel = document.getElementById('fCat');
+  const cur = sel.value;
+  const cats = [...new Set([...Object.keys(CAT_PREFIX), ...items.map(i=>i.cat)])].sort();
+  sel.innerHTML = '<option value="">Все категории</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+  sel.value = cur;
+  const subs = [...new Set(items.map(i=>i.subgroup).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const fs = document.getElementById('fSub'), cs = fs.value;
+  fs.innerHTML = '<option value="">Все подгруппы</option><option value="__none">— без подгруппы —</option>' + subs.map(c=>`<option>${c}</option>`).join('');
+  fs.value = cs;
+  document.getElementById('subList').innerHTML = subs.map(c=>`<option value="${c}">`).join('');
+}
+function natKey(a,b){ return (a.customId||'~').localeCompare(b.customId||'~',undefined,{numeric:true}); }
+function sortItems(list){
+  const vi = v=>{ const i=VERDICTS.indexOf(v||'Без вердикта'); return i<0?99:i; };
+  const ci = c=>({'Высокая':0,'Средняя':1,'Низкая':2})[c] ?? 3;
+  const cmp = {
+    id:natKey,
+    cat:(a,b)=>(a.cat||'').localeCompare(b.cat||'')||natKey(a,b),
+    verdict:(a,b)=>vi(a.verdict)-vi(b.verdict)||natKey(a,b),
+    sub:(a,b)=>(a.subgroup||'я').localeCompare(b.subgroup||'я')||natKey(a,b),
+    conf:(a,b)=>ci(a.confidence)-ci(b.confidence)||natKey(a,b),
+    worn:(a,b)=>(a.wearCount||0)-(b.wearCount||0)||natKey(a,b),
+    quar:(a,b)=>(a.quarUntil||'9').localeCompare(b.quarUntil||'9')||natKey(a,b)
+  }[document.getElementById('fSort').value] || natKey;
+  return list.sort(cmp);
+}
+function tile(it){
+  const v = it.verdict && it.verdict!=='Без вердикта' ? it.verdict : '';
+  return `<div class="item" onclick="openItemModal('${it.id}')">
+      <button class="del" onclick="delItem('${it.id}', event)">✕</button>
+      ${itemThumb(it)}
+      <div class="info">
+        ${it.customId?`<div class="badge" style="margin-bottom:3px;display:inline-block">${it.customId}</div>`:''}
+        <div class="name">${it.name}</div><div class="cat">${it.cat} · ${it.colorName}</div>
+        ${it.role && it.role!=='Без роли'?`<div class="role-badge">${it.role}</div>`:''}
+        ${v?`<div class="vbadge" style="background:${VCOL[v]}">${v}${it.quarUntil&&v.startsWith('Карантин')?' → '+it.quarUntil.slice(5):''}</div>`:''}
+        ${it.subgroup?`<div class="sub-chip">${it.subgroup}</div>`:''}
+      </div>
+    </div>`;
+}
+function renderSummary(){
+  const c = {}; items.forEach(i=>{ const v=i.verdict||'Без вердикта'; c[v]=(c[v]||0)+1; });
+  document.getElementById('verdictSummary').innerHTML = items.length
+    ? VERDICTS.filter(v=>c[v]).map(v=>`<span class="chip" onclick="setVerdictFilter('${v}')" style="${VCOL[v]?'border-left:4px solid '+VCOL[v]:''}">${v}: ${c[v]}</span>`).join('') : '';
+}
+function setVerdictFilter(v){
+  const el = document.getElementById('fVerdict');
+  el.value = el.value===v ? '' : v;
+  renderWardrobe();
+}
+function renderWardrobe(){
+  refreshCatFilter(); renderSummary();
+  const g = document.getElementById('wardrobeGrid');
+  const list = sortItems(filteredItems());
+  if(!items.length){ g.innerHTML = '<div class="empty">Пока пусто — добавьте первую вещь ↑</div>'; return; }
+  if(!list.length){ g.innerHTML = '<div class="empty">Ничего не найдено под фильтры</div>'; return; }
+  const gb = document.getElementById('fGroup').value;
+  if(!gb){ g.innerHTML = list.map(tile).join(''); return; }
+  const keyOf = it => gb==='subgroup' ? (it.subgroup||'Без подгруппы') : gb==='verdict' ? (it.verdict||'Без вердикта') : (it.cat||'Без категории');
+  const groups = new Map();
+  list.forEach(it=>{ const k=keyOf(it); if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(it); });
+  g.innerHTML = [...groups].map(([k,arr])=>`<div class="gh">${k} · ${arr.length}</div>${arr.map(tile).join('')}`).join('');
+}
+function openItemModal(id){
+  const it = items.find(i=>i.id===id);
+  if(!it) return;
+  document.getElementById('emCustomId').value = it.customId||'';
+  document.getElementById('emCat').value = it.cat||'';
+  document.getElementById('emName').value = it.name||'';
+  document.getElementById('emColor').value = it.colorName||'';
+  document.getElementById('emMaterial').value = it.material||'';
+  document.getElementById('emCondition').value = it.condition||'Новое / каталог';
+  document.getElementById('emSeason').value = it.season||'Всесезонное';
+  document.getElementById('emVersatility').value = it.versatility||'Средняя';
+  document.getElementById('emWeather').value = it.weather||'Любая';
+  document.getElementById('emRole').value = it.role||'Без роли';
+  document.getElementById('emVerdict').value = it.verdict||'Без вердикта';
+  document.getElementById('emConf').value = it.confidence||'—';
+  document.getElementById('emSub').value = it.subgroup||'';
+  document.getElementById('emAction').value = it.action||'';
+  document.getElementById('emQuar').value = it.quarUntil||'';
+  document.getElementById('emStats').textContent = `Носили: ${it.wearCount||0}× · ${it.lastWorn?('последний раз '+it.lastWorn):'ни разу не отмечено'}`;
+  document.getElementById('emPhoto').value = '';
+  window._emPendingPhoto = undefined;
+  renderEmPhotoPreview(it.photo);
+  document.getElementById('itemModalBg').dataset.editId = id;
+  document.getElementById('itemModalBg').classList.add('active');
+}
+function renderEmPhotoPreview(photo){
+  const box = document.getElementById('emPhotoPreview');
+  const rmBtn = document.getElementById('emPhotoRemoveBtn');
+  if(photo){
+    box.innerHTML = `<img src="${photo}" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px">`;
+    rmBtn.style.display = 'block';
+  } else {
+    box.innerHTML = `<div class="empty" style="padding:14px">Фото ещё нет</div>`;
+    rmBtn.style.display = 'none';
+  }
+}
+document.getElementById('emPhoto').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ window._emPendingPhoto = r.result; renderEmPhotoPreview(r.result); };
+  r.readAsDataURL(f);
+});
+function removeEmPhoto(){
+  window._emPendingPhoto = null;
+  renderEmPhotoPreview(null);
+}
+function closeItemModal(){ document.getElementById('itemModalBg').classList.remove('active'); }
+function saveItemEdit(){
+  const id = document.getElementById('itemModalBg').dataset.editId;
+  const it = items.find(i=>i.id===id);
+  if(!it) return;
+  it.customId = document.getElementById('emCustomId').value.trim();
+  it.cat = document.getElementById('emCat').value.trim() || 'Без категории';
+  it.name = document.getElementById('emName').value.trim() || it.name;
+  it.colorName = document.getElementById('emColor').value;
+  it.color = hexFor(it.colorName);
+  it.material = document.getElementById('emMaterial').value.trim();
+  it.condition = document.getElementById('emCondition').value;
+  it.season = document.getElementById('emSeason').value;
+  it.versatility = document.getElementById('emVersatility').value;
+  it.weather = document.getElementById('emWeather').value;
+  it.role = document.getElementById('emRole').value;
+  it.verdict = document.getElementById('emVerdict').value;
+  it.confidence = document.getElementById('emConf').value;
+  it.subgroup = document.getElementById('emSub').value.trim();
+  it.action = document.getElementById('emAction').value.trim();
+  it.quarUntil = document.getElementById('emQuar').value;
+  if(it.verdict.startsWith('Карантин') && !it.quarUntil){ const d=new Date(); d.setDate(d.getDate()+30); it.quarUntil=keyFor(d); }
+  if(window._emPendingPhoto !== undefined){ it.photo = window._emPendingPhoto; }
+  window._emPendingPhoto = undefined;
+  save(); closeItemModal(); renderWardrobe();
+}
+function renderPicker(){
+  const g = document.getElementById('pickerGrid');
+  if(!items.length){ g.innerHTML = '<div class="empty">Сначала добавьте вещи в гардероб</div>'; return; }
+  g.innerHTML = items.map(it=>`
+    <div class="item ${selectedIds.has(it.id)?'selected':''}" onclick="toggleSel('${it.id}')">
+      ${itemThumb(it)}
+      <div class="info"><div class="name">${it.name}</div><div class="cat">${it.cat}</div>${it.role && it.role!=='Без роли'?`<div class="role-badge">${it.role}</div>`:''}</div>
+    </div>`).join('');
+  renderConflictWarning();
+}
+function toggleSel(id){
+  selectedIds.has(id) ? selectedIds.delete(id) : selectedIds.add(id);
+  renderPicker();
+}
+function renderConflictWarning(){
+  let box = document.getElementById('conflictWarn');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'conflictWarn';
+    document.getElementById('pickerGrid').insertAdjacentElement('afterend', box);
+  }
+  if(selectedIds.size && roleConflict([...selectedIds])){
+    box.className = 'warn';
+    box.innerHTML = '⚠️ В образе смешаны спортивные и формальные вещи (например, «Спорт» + «Офис»/«Вечер»). Можно сохранить, но стоит проверить сочетание.';
+  } else {
+    box.className = ''; box.innerHTML = '';
+  }
+}
+function saveOutfit(){
+  const name = document.getElementById('outfitName').value.trim();
+  if(!name){ alert('Введите название образа'); return; }
+  if(!selectedIds.size){ alert('Выберите хотя бы одну вещь'); return; }
+  if(roleConflict([...selectedIds]) && !confirm('В образе смешаны спорт и формальные вещи. Сохранить всё равно?')) return;
+  outfits.push({id:'o'+Date.now(), name, itemIds:[...selectedIds]});
+  selectedIds.clear();
+  document.getElementById('outfitName').value='';
+  save(); renderPicker(); renderOutfits();
+}
+function delOutfit(id){
+  outfits = outfits.filter(o=>o.id!==id);
+  save(); renderOutfits();
+}
+function wearOutfit(id){
+  const o = outfits.find(x=>x.id===id);
+  if(!o) return;
+  const today = new Date().toISOString().slice(0,10);
+  o.itemIds.forEach(iid=>{
+    const it = items.find(i=>i.id===iid);
+    if(it){ it.wearCount = (it.wearCount||0)+1; it.lastWorn = today; }
+  });
+  save(); renderOutfits();
+}
+function renderOutfits(){
+  const box = document.getElementById('outfitsList');
+  if(!outfits.length){ box.innerHTML=''; return; }
+  box.innerHTML = outfits.map(o=>{
+    const its = o.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);
+    const thumbs = its.map(it=> it.photo ? `<img class="thumb" src="${it.photo}">` : `<div class="thumb sw" style="background:${it.color}33">👕</div>`).join('');
+    return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center">
+      <strong>${o.name}</strong>
+      <button onclick="delOutfit('${o.id}')" style="background:none;border:none;color:var(--sub);cursor:pointer">✕</button>
+      </div><div class="outfit-card">${thumbs}</div>
+      ${o.notes?`<div style="font-size:0.78rem;color:var(--sub);margin-bottom:6px">${o.notes}</div>`:''}
+      <button class="secondary" onclick="wearOutfit('${o.id}')">✅ Носили сегодня</button>
+      </div>`;
+  }).join('');
+}
+function quickPick(){
+  const w = document.getElementById('quickWeather').value;
+  const res = document.getElementById('quickResult');
+  document.querySelectorAll('#pickerGrid .item').forEach(el=>el.classList.remove('match'));
+  if(!w){ res.innerHTML = ''; return; }
+  const matches = items.filter(it => it.weather===w || it.weather==='Любая');
+  if(!matches.length){ res.innerHTML = '<div class="empty">Нет вещей под эту погоду — добавьте их с нужным тегом</div>'; return; }
+  const byCat = {};
+  let comboHasSport = false, comboHasFormal = false;
+  matches.forEach(it=>{
+    if(byCat[it.cat]) return;
+    const isSport = GROUP_SPORT.includes(it.role), isFormal = GROUP_FORMAL.includes(it.role);
+    if((isSport && comboHasFormal) || (isFormal && comboHasSport)) return;
+    byCat[it.cat] = it;
+    if(isSport) comboHasSport = true;
+    if(isFormal) comboHasFormal = true;
+  });
+  const combo = Object.values(byCat);
+  const thumbs = combo.map(it=> it.photo ? `<img class="thumb" src="${it.photo}">` : `<div class="thumb sw" style="background:${it.color}33">👕</div>`).join('');
+  res.innerHTML = `<p style="font-size:0.85rem;color:var(--sub);margin:8px 0 4px">Предложенный образ (по 1 вещи из категории):</p>
+    <div class="outfit-card">${thumbs}</div>
+    <button class="secondary" onclick="acceptQuick()">Выбрать эти вещи вручную ↓</button>`;
+  window._quickCombo = combo.map(it=>it.id);
+}
+function acceptQuick(){
+  if(!window._quickCombo) return;
+  selectedIds = new Set(window._quickCombo);
+  renderPicker();
+  document.getElementById('pickerGrid').scrollIntoView({behavior:'smooth'});
+}
+
+function pad(n){ return n<10?'0'+n:''+n; }
+function keyFor(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function shiftMonth(n){ curMonth.setMonth(curMonth.getMonth()+n); renderCalendar(); }
+function renderCalendar(){
+  const y=curMonth.getFullYear(), m=curMonth.getMonth();
+  document.getElementById('monthLabel').textContent =
+    curMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  const g = document.getElementById('calGrid');
+  const heads=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  let html = heads.map(h=>`<div class="cal-head">${h}</div>`).join('');
+  const first = new Date(y,m,1);
+  let startOffset = (first.getDay()+6)%7;
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const today = keyFor(new Date());
+  for(let i=0;i<startOffset;i++) html += `<div class="day empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const dt = new Date(y,m,d); const k = keyFor(dt);
+    const outfitId = calendar[k];
+    const outfit = outfits.find(o=>o.id===outfitId);
+    html += `<div class="day ${k===today?'today':''}" onclick="openModal('${k}')">
+      <div class="n">${d}</div>
+      ${outfit?`<div class="dot" title="${outfit.name}"></div>`:''}
+    </div>`;
+  }
+  g.innerHTML = html;
+}
+function openModal(k){
+  modalKey = k;
+  document.getElementById('modalDate').textContent = k;
+  const sel = document.getElementById('modalOutfitSelect');
+  if(!outfits.length){
+    sel.innerHTML = '<option value="">Нет сохранённых образов</option>';
+  } else {
+    sel.innerHTML = outfits.map(o=>`<option value="${o.id}" ${calendar[k]===o.id?'selected':''}>${o.name}</option>`).join('');
+  }
+  document.getElementById('dayModalBg').classList.add('active');
+}
+function closeModal(){ document.getElementById('dayModalBg').classList.remove('active'); }
+function assignOutfit(){
+  const v = document.getElementById('modalOutfitSelect').value;
+  if(v) calendar[modalKey]=v;
+  save(); closeModal(); renderCalendar();
+}
+function clearDay(){
+  delete calendar[modalKey];
+  save(); closeModal(); renderCalendar();
+}
+
+function renderStats(){
+  const box = document.getElementById('statsList');
+  if(!items.length){ box.innerHTML = '<div class="empty">Добавьте вещи, чтобы видеть статистику</div>'; return; }
+  const sorted = [...items].sort((a,b)=>{
+    const ac=a.wearCount||0, bc=b.wearCount||0;
+    if(ac!==bc) return ac-bc;
+    const al=a.lastWorn||'', bl=b.lastWorn||'';
+    return al.localeCompare(bl);
+  });
+  box.innerHTML = sorted.map(it=>{
+    const thumb = it.photo ? `<img class="thumb" src="${it.photo}">` : `<div class="thumb sw" style="background:${it.color}33">👕</div>`;
+    const sub = it.lastWorn ? `Последний раз: ${it.lastWorn}` : 'Ни разу не отмечено';
+    return `<div class="stat-row">${thumb}
+      <div class="meta"><div class="name">${it.name}</div><div class="sub">${sub}</div></div>
+      <div class="badge">${it.wearCount||0}×</div></div>`;
+  }).join('');
+}
+
+function extFromDataUrl(d){
+  const m = d.match(/^data:image\/(\w+);/);
+  let ext = m ? m[1] : 'jpg';
+  if(ext==='jpeg') ext='jpg';
+  return ext;
+}
+async function saveFile(filename, dataOrBlob){
+  try{
+    const downloads = await claude.use('downloads');
+    if(!downloads){ document.getElementById('importStatus').textContent = 'Скачивание недоступно в этом окне просмотра.'; return false; }
+    await downloads.save({filename, data:dataOrBlob});
+    return true;
+  }catch(e){
+    document.getElementById('importStatus').textContent = 'Не удалось сохранить '+filename+' ('+(e&&e.code||e)+')';
+    return false;
+  }
+}
+function exportJSON(){
+  if(!items.length){ alert('Гардероб пуст — сначала добавьте вещи'); return; }
+  const data = items.map(it=>({
+    id: it.customId || it.id,
+    name: it.name,
+    category: it.cat,
+    subcategory: it.subgroup || null,
+    color: it.colorName ? [it.colorName] : [],
+    material: it.material || null,
+    silhouette: null,
+    season: it.season ? [it.season] : [],
+    formality: null,
+    personas: (it.role && it.role!=='Без роли') ? [it.role] : [],
+    scenarios: [],
+    status: null,
+    versatility: it.versatility || null,
+    wear_frequency: !it.wearCount ? null : (it.wearCount>=10?'high':it.wearCount>=3?'medium':'low'),
+    wear_count: it.wearCount || 0,
+    last_worn: it.lastWorn || null,
+    condition: it.condition || null,
+    weather: it.weather || null,
+    compatibility: [],
+    needs_fitting: null,
+    notes: it.notes || null,
+    verdict: it.verdict || null,
+    subgroup: it.subgroup || null,
+    confidence: (it.confidence && it.confidence!=='—') ? it.confidence : null,
+    action: it.action || null,
+    quarantine_until: it.quarUntil || null,
+    tags: it.tags || [],
+    image_filename: it.photo ? ((it.customId||it.id)+'.'+extFromDataUrl(it.photo)) : ((it.customId||it.id)+'.jpg')
+  }));
+  saveFile('wardrobe.json', JSON.stringify(data, null, 2));
+}
+async function exportPhotos(){
+  const withPhotos = items.filter(it=>it.photo);
+  if(!withPhotos.length){ alert('Нет вещей с загруженными фото — фото не из чего экспортировать'); return; }
+  document.getElementById('importStatus').textContent = 'Сохраняю фото по одному, подтверждайте каждое...';
+  for(const it of withPhotos){
+    const ext = extFromDataUrl(it.photo);
+    const res = await fetch(it.photo);
+    const blob = await res.blob();
+    const ok = await saveFile((it.customId||it.id)+'.'+ext, blob);
+    if(!ok) break;
+  }
+  document.getElementById('importStatus').textContent = 'Готово. Положите скачанные фото в папку images/.';
+}
+function findItemByExternalId(extId){
+  return items.find(it => it.customId===extId || it.id===extId);
+}
+function importFile(){
+  const f = document.getElementById('importFile').files[0];
+  const status = document.getElementById('importStatus');
+  if(!f){ status.textContent = 'Выберите файл.'; return; }
+  const r = new FileReader();
+  r.onload = ()=>{
+    let json;
+    try{ json = JSON.parse(r.result); }catch(e){ status.textContent = 'Файл не похож на валидный JSON.'; return; }
+    if(Array.isArray(json) && json.length && ('customId' in json[0] || 'name' in json[0])){
+      let added = 0, updated = 0;
+      json.forEach(rec=>{
+        let it = rec.customId ? findItemByExternalId(rec.customId) : null;
+        if(!it){
+          it = {id:'i'+Date.now()+Math.random().toString(36).slice(2,7), wearCount:0, lastWorn:null};
+          items.push(it);
+          added++;
+        } else updated++;
+        Object.keys(rec).forEach(k=>{
+          if(rec[k]!==null && rec[k]!==undefined && !(k==='wearCount'&&it.wearCount) && !(k==='lastWorn'&&it.lastWorn)){
+            it[k]=rec[k];
+          }
+        });
+        if(rec.quarantine_until) it.quarUntil = rec.quarantine_until;
+        it.color = hexFor(it.colorName);
+        if(!it.customId) it.customId = rec.customId || '';
+      });
+      save(); renderWardrobe();
+      status.textContent = `Импортировано: добавлено ${added}, обновлено ${updated} (всего в файле ${json.length}).`;
+    } else if(Array.isArray(json.items)){
+      let updated = 0;
+      json.items.forEach(rec=>{
+        const it = findItemByExternalId(rec.id);
+        if(!it) return;
+        if(Array.isArray(rec.personas) && rec.personas.length){
+          const match = rec.personas.find(p=>ROLES.includes(p));
+          if(match) it.role = match;
+        }
+        if(rec.category) it.cat = rec.category;
+        if(Array.isArray(rec.tags)) it.tags = rec.tags;
+        if(VERDICTS.includes(rec.verdict)) it.verdict = rec.verdict;
+        if(rec.subgroup) it.subgroup = rec.subgroup;
+        if(CONFS.includes(rec.confidence)) it.confidence = rec.confidence;
+        if(rec.action) it.action = rec.action;
+        if(rec.quarantine_until) it.quarUntil = rec.quarantine_until;
+        if(rec.styling_notes) it.notes = [it.notes, rec.styling_notes].filter(Boolean).join(' | ');
+        updated++;
+      });
+      save(); renderWardrobe();
+      status.textContent = `Обновлено вещей: ${updated} из ${json.items.length}.`;
+    } else if(Array.isArray(json.looks)){
+      let created = 0;
+      json.looks.forEach(look=>{
+        const ids = (look.item_ids||[]).map(findItemByExternalId).filter(Boolean).map(it=>it.id);
+        if(!ids.length) return;
+        outfits.push({id:'o'+Date.now()+Math.random().toString(36).slice(2,6), name: look.name||'Образ', itemIds: ids,
+          notes: [look.persona, look.scenario, look.styling, look.weather_note].filter(Boolean).join(' · ')});
+        created++;
+      });
+      save(); renderPicker(); renderOutfits();
+      status.textContent = `Создано образов: ${created} из ${(json.looks||[]).length}.`;
+    } else {
+      status.textContent = 'Не нашла ни items[], ни looks[] — проверьте, тот ли файл выбран.';
+    }
+  };
+  r.readAsText(f);
+}
+
+function baseName(filename){
+  return filename.replace(/\.[^.]+$/, '').trim();
+}
+async function bulkImportPhotos(){
+  const files = [...document.getElementById('bulkPhotos').files];
+  const status = document.getElementById('bulkPhotoStatus');
+  if(!files.length){ status.textContent = 'Сначала выберите файлы.'; return; }
+  let matched = 0, unmatched = [];
+  for(const f of files){
+    const name = baseName(f.name);
+    const it = items.find(i => (i.customId||'').toLowerCase() === name.toLowerCase());
+    if(!it){ unmatched.push(f.name); continue; }
+    const dataUrl = await new Promise((resolve,reject)=>{
+      const r = new FileReader();
+      r.onload = ()=>resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(f);
+    });
+    it.photo = dataUrl;
+    matched++;
+  }
+  save(); renderWardrobe();
+  status.textContent = `Готово: подставлено фото в ${matched} из ${files.length}.` +
+    (unmatched.length ? ` Не нашла ID для: ${unmatched.slice(0,8).join(', ')}${unmatched.length>8?'…':''}` : '');
+  document.getElementById('bulkPhotos').value = '';
+}
+
+const O='Оставить',Q='Карантин 30 дней',F='До примерки',U='Уточнить',S='Отдельно',H='Высокая',M='Средняя',L='Низкая';
+const ANALYSIS = [
+['T-05 T-07 T-10 T-11 T-18',O,'Капсула водолазок',H,''],
+['T-01',O,'Джемперы V-вырез',M,'Проверить состав и посадку по талии'],
+['T-06 T-19',O,'Джемперы V-вырез',M,''],
+['T-04 T-13',O,'Топы-борцовки',M,'Проверить длину/посадку'],
+['T-14 T-15',O,'Камисоли — базовый слой',H,''],
+['T-09',Q,'Полосатый поло',M,'Отложить; не надели за 30 дней — отдать'],
+['T-17',F,'Возможные дубли водолазок',L,'Надеть рядом с T-11 — не дубль ли'],
+['T-20',F,'Возможные дубли водолазок',L,'Проверить: не дубль ли T-16'],
+['T-21',S,'Рабочий мерч',H,'Хранить отдельно от стилевой капсулы'],
+['T-02 T-03 T-12',O,'Вещи с логотипом',M,'Тест дня: не думаете про лого — оставить'],
+['T-08',O,'Вечерняя капсула',M,'Пара — SK-07'],
+['B-01',F,'Pinstripe-линия',M,'Проверить шёлк/полиэстер, посадку'],
+['B-04 SK-01',O,'Pinstripe-линия',M,''],
+['B-02',F,'Блуза с баской',M,'Проверить оттенок вживую'],
+['B-03 B-05 B-08',O,'Блузы с бантом-жабо',M,'B-08: проверить прозрачность'],
+['B-06 B-07 B-09',O,'Оверсайз-рубашки',H,'Лого на B-06/07 — решить тестом'],
+['B-10',F,'Накидки/болеро',M,'Собрать образ с C-01/C-02/D-03'],
+['J-01 JK-01 J-03',O,'Пиджаки',H,'J-01/JK-01: свести дубль ID'],
+['J-02 JK-02',O,'Пиджаки',M,'Попробовать с отдельным поясом; свести дубль ID'],
+['J-04',O,'Пиджаки',M,'Понять, почему носится реже'],
+['K-01 K-02',O,'Кардиганы-халаты',H,''],
+['K-03',U,'Худи',L,'Дом или улица?'],
+['P-01 P-02 P-04',O,'Широкие брюки',H,''],
+['P-03',O,'Широкие брюки',M,'Свести дубль описания'],
+['JN-01',F,'Джинсы',M,'Уточнить частоту носки'],
+['JN-02',O,'Джинсы',M,''],
+['SH-01',Q,'Шорты',M,'Надеть в тёплый день; нет — отдать'],
+['SK-03',O,'Клетка / принты',H,''],
+['SK-09 SK-10',F,'Клетка / принты',M,'Проверить цвет, длину, посадку'],
+['SK-04 SK-06',O,'Юбки camel',H,''],
+['SK-07',O,'Юбки: Романтика',H,''],
+['SK-08',O,'Вечерняя капсула',H,''],
+['SK-02 SK-05',Q,'Мини-юбки под вопросом',M,'Тест через месяц с блузой/жакетом'],
+['D-01 D-03 D-04 D-05 D-06',O,'Платья: база',H,''],
+['D-02',F,'Платья: холодный серый',M,'Тест тканью у лица при дневном свете'],
+['D-07',O,'Платья: лето',H,''],
+['D-08 D-09 D-11',O,'Комбинации',H,''],
+['D-10',O,'Единичный акцент',M,'Цвет не тиражировать'],
+['D-12',O,'Вечерняя капсула',H,''],
+['C-01 C-02',F,'Бархатная вечерняя капсула',M,'Примерить с SK-07/SK-08 + K-01/02'],
+['C-03 ACC-01',F,'Бархатная вечерняя капсула',M,'Проверить комфорт пояса-баски'],
+['C-04',F,'Бархатная вечерняя капсула',M,'С жакетом нараспашку или как подложка'],
+['O-02',O,'Верхняя одежда: якорь',H,''],
+['O-01 O-03 O-05',O,'Пальто, тренч, жакеты',M,''],
+['O-04',O,'Пальто, тренч, жакеты',M,'Тест с отдельным поясом'],
+['SP-01 SP-02 SP-03 SP-04 SP-05 SP-06 SP-07 SP-20',O,'Спорт: функциональная капсула',H,''],
+['SP-08..19',U,'Спорт: ротация неясна',L,'Отследить, что надеваете за неделю тренировок'],
+['ACC-03',O,'Шарф',M,''],
+['SG-01 ACC-02',U,'Очки',L,'Одна пара или две?'],
+['GL-01 GLCH-01',O,'Очки',H,''],
+['NECK-01 CH-01',O,'Украшения',H,''],
+['SW-01',O,'Сезонное',M,''],
+['E2-04 E2-08 E3-02 E1-02 E1-05 E1-06 E1-10 E2-01 E2-09 E3-06',O,'Серьги: золото + жемчуг',H,''],
+['E1-09 E3-07 E3-08 E3-09 E3-10 E2-10',O,'Серьги: серебро, база',M,''],
+['E1-03 E2-05',O,'Серьги: вечерние',M,''],
+['E1-04 E1-07 E3-03 E3-04',Q,'Серьги: вне палитры',M,'Надеть раз за месяц с нейтральным образом'],
+['E1-01 E3-01',O,'Серьги: экспериментальные',M,''],
+['BR-01',S,'Личная история',H,'Не оценивать по стилю'],
+['BAG-01 BAG-07',O,'Сумки: вечерний акцент',M,'Одна сумка или две? (дубль ID)'],
+['BAG-02 BAG-03 BAG-05 BAG-06 BAG-08 BAG-09',O,'Сумки: основные',M,''],
+['BAG-04',Q,'Сумки: спорная',L,'Носите ли фактически?'],
+['SH-04 SH-09',O,'Обувь: вечерняя',M,''],
+['SH-05 SH-06 SH-08',O,'Обувь: повседневная',M,''],
+['SH-07',O,'Обувь: сезонная',M,'']
+];
+function expandIds(str){
+  return str.split(' ').flatMap(t=>{
+    const m = t.match(/^(.*?-)(\d+)\.\.(\d+)$/);
+    if(!m) return [t];
+    const a=+m[2], b=+m[3], w=m[2].length;
+    return Array.from({length:b-a+1},(_,i)=>m[1]+String(a+i).padStart(w,'0'));
+  });
+}
+function applyAnalysis(){
+  const st = document.getElementById('analysisStatus');
+  if(!items.length){ st.textContent = 'Гардероб пуст — сначала импортируйте или добавьте вещи с ID.'; return; }
+  if(!confirm('Перезаписать вердикт, подгруппу, уверенность и «что сделать» у вещей из анализа?')) return;
+  const q = new Date(); q.setDate(q.getDate()+30); const qd = keyFor(q);
+  let ok = 0; const miss = [];
+  ANALYSIS.forEach(([ids,verdict,subgroup,confidence,action])=>{
+    expandIds(ids).forEach(id=>{
+      const it = items.find(i=>(i.customId||'').toLowerCase()===id.toLowerCase());
+      if(!it){ miss.push(id); return; }
+      it.verdict = verdict; it.subgroup = subgroup; it.confidence = confidence; it.action = action;
+      it.quarUntil = verdict===Q ? (it.quarUntil||qd) : '';
+      ok++;
+    });
+  });
+  save(); renderWardrobe();
+  st.textContent = `Проставлено: ${ok}. Не найдено по ID: ${miss.length}` + (miss.length?` (${miss.slice(0,25).join(', ')}${miss.length>25?'…':''})`:'') + '.';
+}
+
+fillColorSelects();
+load();
+renderWardrobe();
+renderCalendar();
+</script>
+</body>
+</html>
