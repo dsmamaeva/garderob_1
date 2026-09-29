@@ -92,6 +92,7 @@ button.secondary{margin-top:8px;width:100%;padding:10px;border:1px solid var(--l
     <button data-v="outfits">Образы</button>
     <button data-v="calendar">Календарь</button>
     <button data-v="stats">Статистика</button>
+    <button data-v="clarify">Уточнения</button>
     <button data-v="data">Данные</button>
   </nav>
 </header>
@@ -222,6 +223,33 @@ button.secondary{margin-top:8px;width:100%;padding:10px;border:1px solid var(--l
     </div>
   </section>
 
+  <section id="clarify" class="view">
+    <div class="card">
+      <strong>Уточнения для ИИ</strong>
+      <p style="color:var(--sub);font-size:0.85rem;margin:6px 0">Ответьте на вопросы и отметьте своё решение по спорным вещам (ответы сохраняются сами). Затем нажмите «Скопировать для ИИ» и вставьте текст в чат: инструкция и весь гардероб уже внутри.</p>
+      <div class="badge" id="clarProgress"></div>
+      <button class="primary" onclick="copyForAI()">📋 Скопировать для ИИ</button>
+      <button class="secondary" onclick="downloadForAI()">⬇️ Скачать как .md</button>
+      <div id="aiStatus" style="margin-top:8px;font-size:0.85rem;color:var(--sub)"></div>
+      <details style="margin-top:8px"><summary style="font-size:.85rem;color:var(--sub);cursor:pointer">Предпросмотр текста</summary>
+        <textarea id="aiPreview" readonly rows="10" style="width:100%;margin-top:6px;font-size:.75rem;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);padding:8px"></textarea></details>
+    </div>
+    <div class="card"><strong>Общие вопросы</strong><div id="clarQuestions"></div></div>
+    <div class="card">
+      <strong>Спорные вещи</strong>
+      <label style="display:flex;align-items:center"><input type="checkbox" id="cOnlyOpen" style="width:auto;margin:0 6px 0 0" onchange="renderClarify()"> только без ответа</label>
+      <p style="color:var(--sub);font-size:0.8rem;margin:4px 0">Сюда попадают вещи с вердиктом «Уточнить», «До примерки» и «Карантин».</p>
+      <div id="clarItems"></div>
+    </div>
+    <div class="card">
+      <strong>Вернуть ответ ИИ в гардероб</strong>
+      <p style="color:var(--sub);font-size:0.85rem;margin:6px 0">Вставьте сюда ответ ИИ (достаточно блока JSON) — обновятся вердикты, подгруппы, уверенность и «что сделать».</p>
+      <textarea id="pasteJson" rows="5" style="width:100%;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);padding:8px;font-size:.8rem" placeholder='{"items":[{"id":"T-17","verdict":"Оставить", ...}]}'></textarea>
+      <button class="primary" onclick="applyPasted()">⬆️ Применить</button>
+      <div id="pasteStatus" style="margin-top:8px;font-size:0.85rem;color:var(--sub)"></div>
+    </div>
+  </section>
+
   <section id="data" class="view">
     <div class="card">
       <strong>💾 Резервная копия (со всеми фото, образами и календарём)</strong>
@@ -317,6 +345,10 @@ button.secondary{margin-top:8px;width:100%;padding:10px;border:1px solid var(--l
     <label>Подгруппа</label><input id="emSub" list="subList">
     <label>Что сделать</label><input id="emAction" placeholder="Проверить состав, примерить…">
     <label>Карантин до</label><input id="emQuar" type="date">
+    <label>Моё решение</label>
+    <select id="emMyDec"><option value="">—</option><option>Оставляю</option><option>Отдаю</option><option>Продаю</option><option>В ремонт</option><option>Ещё думаю</option></select>
+    <label>Мой ответ / уточнение для ИИ</label>
+    <textarea id="emAnswer" rows="3" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit;margin-top:4px" placeholder="Например: носила 3 раза, села после стирки; это дубль T-11"></textarea>
     <p class="badge" id="emStats" style="margin-top:10px;display:inline-block"></p>
     <button class="primary" onclick="saveItemEdit()">Сохранить изменения</button>
   </div>
@@ -388,6 +420,7 @@ function fillColorSelects(){
 }
 function hexFor(name){ const f = NAMED_COLORS.find(c=>c[0]===name); return f?f[1]:'#ccc'; }
 
+let answers = {};
 let lastBackup=null, persisted=false, saveTimer=null, saveFailed=false, savedAt=null;
 function idb(){
   return new Promise((res,rej)=>{
@@ -409,7 +442,7 @@ function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(persist, 250); 
 async function persist(){
   clearTimeout(saveTimer);
   try{
-    await idbSet('state',{items,outfits,calendar,lastBackup,savedAt:Date.now()});
+    await idbSet('state',{items,outfits,calendar,answers,lastBackup,savedAt:Date.now()});
     saveFailed=false; savedAt=new Date();
   }catch(e){
     saveFailed=true; console.error('storage error', e);
@@ -432,7 +465,7 @@ async function init(){
   if(!st){
     try{ st = {items:JSON.parse(localStorage.getItem('wd_items')||'[]'), outfits:JSON.parse(localStorage.getItem('wd_outfits')||'[]'), calendar:JSON.parse(localStorage.getItem('wd_calendar')||'{}')}; }catch(e){ st = {}; }
   }
-  items = st.items||[]; outfits = st.outfits||[]; calendar = st.calendar||{}; lastBackup = st.lastBackup||null;
+  items = st.items||[]; outfits = st.outfits||[]; calendar = st.calendar||{}; answers = st.answers||{}; lastBackup = st.lastBackup||null;
   try{ if(navigator.storage && navigator.storage.persist) persisted = await navigator.storage.persist(); }catch(e){}
   renderWardrobe(); renderCalendar();
   if(items.length && !st.savedAt) persist(); else updateStatus();
@@ -470,6 +503,7 @@ document.querySelectorAll('nav button').forEach(b=>{
     if(b.dataset.v==='outfits'){ renderPicker(); renderOutfits(); }
     if(b.dataset.v==='calendar'){ renderCalendar(); }
     if(b.dataset.v==='stats'){ renderStats(); }
+    if(b.dataset.v==='clarify'){ renderClarify(); }
   };
 });
 
@@ -561,6 +595,7 @@ function tile(it){
         ${it.role && it.role!=='Без роли'?`<div class="role-badge">${it.role}</div>`:''}
         ${v?`<div class="vbadge" style="background:${VCOL[v]}">${v}${it.quarUntil&&v.startsWith('Карантин')?' → '+it.quarUntil.slice(5):''}</div>`:''}
         ${it.subgroup?`<div class="sub-chip">${it.subgroup}</div>`:''}
+        ${it.myDecision||it.answer?`<div class="sub-chip">✋ ${it.myDecision||'есть ответ'}</div>`:''}
       </div>
     </div>`;
 }
@@ -605,6 +640,8 @@ function openItemModal(id){
   document.getElementById('emSub').value = it.subgroup||'';
   document.getElementById('emAction').value = it.action||'';
   document.getElementById('emQuar').value = it.quarUntil||'';
+  document.getElementById('emMyDec').value = it.myDecision||'';
+  document.getElementById('emAnswer').value = it.answer||'';
   document.getElementById('emStats').textContent = `Носили: ${it.wearCount||0}× · ${it.lastWorn?('последний раз '+it.lastWorn):'ни разу не отмечено'}`;
   document.getElementById('emPhoto').value = '';
   window._emPendingPhoto = undefined;
@@ -653,6 +690,8 @@ function saveItemEdit(){
   it.subgroup = document.getElementById('emSub').value.trim();
   it.action = document.getElementById('emAction').value.trim();
   it.quarUntil = document.getElementById('emQuar').value;
+  it.myDecision = document.getElementById('emMyDec').value;
+  it.answer = document.getElementById('emAnswer').value.trim();
   if(it.verdict.startsWith('Карантин') && !it.quarUntil){ const d=new Date(); d.setDate(d.getDate()+30); it.quarUntil=keyFor(d); }
   if(window._emPendingPhoto !== undefined){ it.photo = window._emPendingPhoto; }
   window._emPendingPhoto = undefined;
@@ -841,7 +880,7 @@ function exportBackup(){
   if(!items.length && !outfits.length){ alert('Пока нечего сохранять'); return; }
   lastBackup = Date.now(); persist();
   saveFile('wardrobe_backup_'+new Date().toISOString().slice(0,10)+'.json',
-    JSON.stringify({wardrobeBackup:1, exportedAt:new Date().toISOString(), items, outfits, calendar}));
+    JSON.stringify({wardrobeBackup:1, exportedAt:new Date().toISOString(), items, outfits, calendar, answers}));
 }
 function exportJSON(){
   if(!items.length){ alert('Гардероб пуст — сначала добавьте вещи'); return; }
@@ -872,6 +911,8 @@ function exportJSON(){
     confidence: (it.confidence && it.confidence!=='—') ? it.confidence : null,
     action: it.action || null,
     quarantine_until: it.quarUntil || null,
+    my_decision: it.myDecision || null,
+    user_answer: it.answer || null,
     tags: it.tags || [],
     image_filename: it.photo ? ((it.customId||it.id)+'.'+extFromDataUrl(it.photo)) : ((it.customId||it.id)+'.jpg')
   }));
@@ -898,12 +939,16 @@ function importFile(){
   const status = document.getElementById('importStatus');
   if(!f){ status.textContent = 'Выберите файл.'; return; }
   const r = new FileReader();
-  r.onload = ()=>{
+  r.onload = ()=>importText(r.result, status);
+  r.readAsText(f);
+}
+function importText(text, status){
+  {
     let json;
-    try{ json = JSON.parse(r.result); }catch(e){ status.textContent = 'Файл не похож на валидный JSON.'; return; }
+    try{ json = JSON.parse(text); }catch(e){ status.textContent = 'Файл не похож на валидный JSON.'; return; }
     if(json.wardrobeBackup){
       if(!confirm('Заменить текущие данные копией из файла? ('+(json.items||[]).length+' вещей)')) return;
-      items = json.items||[]; outfits = json.outfits||[]; calendar = json.calendar||{};
+      items = json.items||[]; outfits = json.outfits||[]; calendar = json.calendar||{}; answers = json.answers||{};
       persist(); renderWardrobe(); renderCalendar();
       status.textContent = `Восстановлено вещей: ${items.length}, образов: ${outfits.length}.`;
     } else if(Array.isArray(json) && json.length && ('customId' in json[0] || 'name' in json[0])){
@@ -937,7 +982,7 @@ function importFile(){
         }
         if(rec.category) it.cat = rec.category;
         if(Array.isArray(rec.tags)) it.tags = rec.tags;
-        if(VERDICTS.includes(rec.verdict)) it.verdict = rec.verdict;
+        if(VERDICTS.includes(rec.verdict)){ it.verdict = rec.verdict; if(it.verdict.startsWith('Карантин') && !it.quarUntil){ const d=new Date(); d.setDate(d.getDate()+30); it.quarUntil=keyFor(d); } }
         if(rec.subgroup) it.subgroup = rec.subgroup;
         if(CONFS.includes(rec.confidence)) it.confidence = rec.confidence;
         if(rec.action) it.action = rec.action;
@@ -961,8 +1006,7 @@ function importFile(){
     } else {
       status.textContent = 'Не нашла ни items[], ни looks[] — проверьте, тот ли файл выбран.';
     }
-  };
-  r.readAsText(f);
+  }
 }
 
 function baseName(filename){
@@ -1079,6 +1123,91 @@ function applyAnalysis(){
   });
   save(); renderWardrobe();
   st.textContent = `Проставлено: ${ok}. Не найдено по ID: ${miss.length}` + (miss.length?` (${miss.slice(0,25).join(', ')}${miss.length>25?'…':''})`:'') + '.';
+}
+
+const QUESTIONS = [
+ {id:'q_bag',q:'BAG-01 и BAG-07 — одна сумка с задвоенным ID или две разные?'},
+ {id:'q_sg',q:'SG-01 и ACC-02 — одни и те же очки под двумя ID или разные?'},
+ {id:'q_p03',q:'P-03 встречается дважды с разными описаниями («широкие со складками» и «прямые со стрелками, гусиная лапка») — одна пара или две?'},
+ {id:'q_j',q:'J-01=JK-01 и J-02=JK-02 — это дубли ID (всего 4 пиджака)?'},
+ {id:'q_t17',q:'T-17…T-20 (водолазки/джемпер) — отдельные вещи или дубли T-05/06/07/10/11? Есть ли T-16?'},
+ {id:'q_k03',q:'K-03 (худи шоколад) — носите дома или на прогулку?'},
+ {id:'q_sp',q:'SP-08…SP-19 — что из этого реально надеваете за неделю тренировок?'},
+ {id:'q_free',q:'Что ещё важно учесть (свободный комментарий)?'}
+];
+const AI_PROMPT = `Ты — стилист-аналитик, помогаешь мне расхламить гардероб. Ниже — итоги предыдущего этапа анализа (вердикты по каждой вещи) и МОИ УТОЧНЕНИЯ. Задача:
+1. Учти мои ответы на общие вопросы (дубли ID, уточнения) и пересчитай точное число уникальных вещей.
+2. Для вещей с моими ответами/решениями пересмотри вердикт: итоговая таблица «ID | решение | причина | что сделать | уверенность».
+3. Не выдумывай данные: если информации не хватает, так и скажи и задай не более 3 уточняющих вопросов.
+4. Обнови список пробелов гардероба (без рекомендаций покупать, пока не закрыты карантины).
+5. В самом конце дай блок JSON в тройных кавычках (json) строго такого вида — только для вещей, где вердикт/подгруппа изменились или уточнились:
+{"items":[{"id":"T-17","verdict":"Оставить","subgroup":"Капсула водолазок","confidence":"Средняя","action":"…"}]}
+Допустимые verdict: ${VERDICTS.filter(v=>v!=='Без вердикта').join(' | ')}. confidence: Высокая | Средняя | Низкая.`;
+const esc = s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const answered = it=>!!((it.answer||'').trim()||it.myDecision);
+function needClar(){ return items.filter(i=>['Уточнить','До примерки','Карантин 30 дней'].includes(i.verdict)); }
+function setAns(id,v){ answers[id]=v; save(); updateClarProgress(); }
+function setItemField(id,f,v){ const it=items.find(i=>i.id===id); if(!it) return; it[f]=v; save(); updateClarProgress(); }
+function updateClarProgress(){
+  const nq = QUESTIONS.filter(q=>(answers[q.id]||'').trim()).length;
+  const list = needClar(), ni = list.filter(answered).length;
+  document.getElementById('clarProgress').textContent = `Вопросы: ${nq}/${QUESTIONS.length} · спорные вещи: ${ni}/${list.length}`;
+  document.getElementById('aiPreview').value = buildAIReport();
+}
+function renderClarify(){
+  document.getElementById('clarQuestions').innerHTML = QUESTIONS.map(q=>`
+    <div style="margin-top:10px"><div style="font-size:.85rem">${esc(q.q)}</div>
+    <textarea rows="2" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit"
+      onchange="setAns('${q.id}',this.value)">${esc(answers[q.id]||'')}</textarea></div>`).join('');
+  const only = document.getElementById('cOnlyOpen').checked;
+  const today = keyFor(new Date());
+  const list = sortItems(needClar()).filter(it=>!only||!answered(it));
+  document.getElementById('clarItems').innerHTML = list.length ? list.map(it=>{
+    const th = it.photo ? `<img class="thumb" src="${it.photo}">` : `<div class="thumb sw" style="background:${it.color}33">👕</div>`;
+    const over = it.verdict.startsWith('Карантин') && it.quarUntil && it.quarUntil<=today ? ' · ⏰ срок карантина вышел' : '';
+    const opt = ['','Оставляю','Отдаю','Продаю','В ремонт','Ещё думаю'].map(o=>`<option value="${o}" ${it.myDecision===o?'selected':''}>${o||'— моё решение —'}</option>`).join('');
+    return `<div class="stat-row" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div style="display:flex;gap:10px;align-items:center">${th}<div class="meta">
+        <div class="name">${esc(it.customId)} · ${esc(it.name)}</div>
+        <div class="sub"><span class="vbadge" style="background:${VCOL[it.verdict]};margin:0">${it.verdict}</span> ${esc(it.subgroup||'')}${over}</div>
+        ${it.action?`<div class="sub">→ ${esc(it.action)}</div>`:''}</div></div>
+      <select onchange="setItemField('${it.id}','myDecision',this.value)">${opt}</select>
+      <textarea rows="2" placeholder="Ваш ответ / что выяснилось" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit"
+        onchange="setItemField('${it.id}','answer',this.value)">${esc(it.answer||'')}</textarea></div>`;
+  }).join('') : '<div class="empty">Нет вещей для уточнения. Примените анализ на вкладке «Данные».</div>';
+  updateClarProgress();
+}
+function buildAIReport(){
+  const L = [AI_PROMPT, '', `Дата выгрузки: ${new Date().toISOString().slice(0,10)}`, '', '## Мои ответы на общие вопросы'];
+  QUESTIONS.forEach(q=>L.push(`- ${q.q}\n  Ответ: ${(answers[q.id]||'').trim()||'(нет ответа)'}`));
+  const touched = items.filter(answered).sort(natKey);
+  L.push('', '## Вещи с моими уточнениями / решениями');
+  if(!touched.length) L.push('(пока нет)');
+  touched.forEach(it=>L.push(`- ${it.customId} | ${it.name} | вердикт был: ${it.verdict||'—'} | подгруппа: ${it.subgroup||'—'} | что нужно было сделать: ${it.action||'—'} | моё решение: ${it.myDecision||'—'} | мой ответ: ${(it.answer||'').trim()||'—'}`));
+  const open = needClar().filter(i=>!answered(i));
+  if(open.length) L.push('', `Без ответа осталось ${open.length}: ${open.map(i=>i.customId).join(', ')}`);
+  L.push('', '## Весь гардероб (ID | название | категория | цвет | вердикт | подгруппа | уверенность | носили | карантин до)');
+  [...items].sort(natKey).forEach(it=>L.push(`${it.customId||it.id} | ${it.name} | ${it.cat} | ${it.colorName||''} | ${it.verdict||'—'} | ${it.subgroup||'—'} | ${it.confidence||'—'} | ${it.wearCount||0}× | ${it.quarUntil||''}`));
+  return L.join('\n');
+}
+async function copyForAI(){
+  const t = buildAIReport(), st = document.getElementById('aiStatus'), ta = document.getElementById('aiPreview');
+  ta.value = t;
+  try{ await navigator.clipboard.writeText(t); st.textContent = 'Скопировано. Вставьте в чат с ИИ.'; }
+  catch(e){ ta.select(); st.textContent = document.execCommand('copy') ? 'Скопировано. Вставьте в чат с ИИ.' : 'Не удалось скопировать — откройте «Предпросмотр» и скопируйте вручную.'; }
+}
+function downloadForAI(){
+  saveFile('wardrobe_for_ai_'+new Date().toISOString().slice(0,10)+'.md', new Blob([buildAIReport()],{type:'text/markdown'}));
+}
+function applyPasted(){
+  const st = document.getElementById('pasteStatus');
+  let t = document.getElementById('pasteJson').value.trim();
+  if(!t){ st.textContent = 'Вставьте ответ ИИ.'; return; }
+  const m = t.match(/```(?:json)?\s*([\s\S]*?)```/); if(m) t = m[1];
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if(a<0||b<a){ st.textContent = 'Не нашла JSON в тексте.'; return; }
+  importText(t.slice(a,b+1), st);
+  renderClarify();
 }
 
 fillColorSelects();
